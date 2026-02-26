@@ -76,9 +76,9 @@
                         <tbody>
                             <tr v-for="(staff, index) in rules" :key="staff.name" class="border-b hover:bg-gray-50">
                                 <td class="px-3 py-2 text-center">
-                                    <select v-model="staff.group" class="border rounded px-2 py-1 text-sm bg-white font-bold cursor-pointer" :class="staff.group === '우정학사' ? 'text-blue-600 border-blue-300' : 'text-orange-600 border-orange-300'">
-                                        <option value="우정학사">우정학사</option>
-                                        <option value="봉황관">봉황관</option>
+                                    <select v-model="staff.group" class="border rounded px-2 py-1 text-sm bg-white font-bold cursor-pointer" :class="staff.group === '기숙사1' ? 'text-blue-600 border-blue-300' : 'text-orange-600 border-orange-300'">
+                                        <option value="기숙사1">기숙사1<option>
+                                        <option value="기숙사2">기숙사2</option>
                                     </select>
                                 </td>
                                 <td class="px-3 py-2 font-bold text-gray-900">{{ staff.name }}</td>
@@ -131,21 +131,21 @@
                     <div class="w-full md:w-1/3">
                         <h4 class="font-bold text-gray-700 mb-2">교사별 근무 통계 (누계)</h4>
                         <div class="bg-gray-50 rounded-lg p-4 border max-h-96 overflow-y-auto">
-                            <!-- 우정학사 통계 -->
+                            <!-- 기숙사1 통계 -->
                             <div class="mb-4">
-                                <h5 class="font-bold text-blue-600 border-b pb-1 mb-2">우정학사 배정 현황</h5>
+                                <h5 class="font-bold text-blue-600 border-b pb-1 mb-2">기숙사1 배정 현황</h5>
                                 <ul>
-                                    <li v-for="stat in statsArray.filter(s => s.group === '우정학사')" :key="stat.name" class="flex justify-between py-1 border-b last:border-0 text-sm">
+                                    <li v-for="stat in statsArray.filter(s => s.group === '기숙사1')" :key="stat.name" class="flex justify-between py-1 border-b last:border-0 text-sm">
                                         <span class="font-medium">{{ stat.name }}</span>
                                         <span>총 <strong class="text-blue-600">{{ stat.total }}</strong>회 (주말 {{ stat.weekend }}회)</span>
                                     </li>
                                 </ul>
                             </div>
-                            <!-- 봉황관 통계 -->
+                            <!-- 기숙사2 통계 -->
                             <div>
-                                <h5 class="font-bold text-orange-600 border-b pb-1 mb-2">봉황관 배정 현황</h5>
+                                <h5 class="font-bold text-orange-600 border-b pb-1 mb-2">기숙사2 배정 현황</h5>
                                 <ul>
-                                    <li v-for="stat in statsArray.filter(s => s.group === '봉황관')" :key="stat.name" class="flex justify-between py-1 border-b last:border-0 text-sm">
+                                    <li v-for="stat in statsArray.filter(s => s.group === '기숙사2')" :key="stat.name" class="flex justify-between py-1 border-b last:border-0 text-sm">
                                         <span class="font-medium">{{ stat.name }}</span>
                                         <span>총 <strong class="text-orange-600">{{ stat.total }}</strong>회 (주말 {{ stat.weekend }}회)</span>
                                     </li>
@@ -162,8 +162,8 @@
                                     <th class="py-3">날짜</th>
                                     <th class="py-3">요일</th>
                                     <th class="py-3">주·야간</th>
-                                    <th class="py-3 bg-blue-100 text-blue-800">우정학사</th>
-                                    <th class="py-3 bg-orange-100 text-orange-800">봉황관</th>
+                                    <th class="py-3 bg-blue-100 text-blue-800">기숙사1</th>
+                                    <th class="py-3 bg-orange-100 text-orange-800">기숙사2</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -209,7 +209,7 @@
                 statsArray() {
                     return Object.keys(this.stats).map(name => ({
                         name: name,
-                        group: this.rules.find(r => r.name === name)?.group || '우정학사',
+                        group: this.rules.find(r => r.name === name)?.group || '기숙사1',
                         total: this.stats[name].total,
                         weekend: this.stats[name].weekend
                     })).sort((a, b) => b.total - a.total);
@@ -309,8 +309,8 @@ methods: {
                             this.colMap.date = rowStrs.indexOf('일자');
                             this.colMap.day = rowStrs.indexOf('요일');
                             this.colMap.shift = rowStrs.findIndex(s => s.includes('주야') || s.includes('주·야간'));
-                            this.colMap.ujeong = rowStrs.findIndex(s => s.includes('우정학사') || s === '우정');
-                            this.colMap.bonghwang = rowStrs.findIndex(s => s.includes('봉황관') || s.includes('봉황'));
+                            this.colMap.ujeong = rowStrs.findIndex(s => s.includes('기숙사1') || s === '우정');
+                            this.colMap.bonghwang = rowStrs.findIndex(s => s.includes('기숙사2') || s.includes('봉황'));
                             this.colMap.name = rowStrs.indexOf('성명');
                             this.colMap.total = rowStrs.findIndex(s => s.includes('누계') || s.includes('시수'));
                             this.colMap.groupCol = rowStrs.findIndex(s => s === '근무' || s === '소속');
@@ -331,7 +331,7 @@ methods: {
                         }
                     }
 
-                    let lastGroup = '우정학사';
+                    let lastGroup = '기숙사1';
                     this.excelStaffMap = {}; // 초기화
 
                     for (let i = headerRowIdx + 1; i < this.dataAOA.length; i++) {
@@ -343,16 +343,16 @@ methods: {
 
                         if (groupVal && groupVal.trim() !== "") {
                             // ✅ '근무' 칸에 들어있는 긴 안내문(근무시간 안내 등) 때문에
-                            // '우정학사/봉황관' 문자열이 포함되어도 오인식되는 문제가 있어
+                            // '기숙사1/기숙사2' 문자열이 포함되어도 오인식되는 문제가 있어
                             // "정확히 일치"하는 경우에만 소속(근무지)으로 인정합니다.
                             const gv = String(groupVal || '').replace(/\s+/g, '').trim();
-                            if (gv === '봉황관' || gv === '봉황') lastGroup = '봉황관';
-                            else if (gv === '우정학사' || gv === '우정') lastGroup = '우정학사';
+                            if (gv === '기숙사2' || gv === '봉황') lastGroup = '기숙사2';
+                            else if (gv === '기숙사1' || gv === '우정') lastGroup = '기숙사1';
                         }
 
                         if (nameVal && nameVal.trim() !== "") {
                             const cleanName = nameVal.trim();
-                            const invalidNames = ['성명', '이름', '연락처', '전화번호', '누계', '시수', '비고', '소속', '근무', '우정학사', '봉황관', '주간', '야간', '일자', '요일', '주·야간'];
+                            const invalidNames = ['성명', '이름', '연락처', '전화번호', '누계', '시수', '비고', '소속', '근무', '기숙사1', '기숙사2', '주간', '야간', '일자', '요일', '주·야간'];
                             if (invalidNames.includes(cleanName.replace(/\s+/g, ''))) continue;
                             if (/^[0-9-]+$/.test(cleanName)) continue;
 
@@ -411,7 +411,7 @@ methods: {
                     // 1) 기존(이미 채워진) 배치가 있으면 통계에 반영
                     //    + "회전 간격"을 위해 shift index(슬롯 번호)도 같이 기록
                     // ------------------------------------------------------------
-                    const shiftCounter = { '우정학사': 0, '봉황관': 0 };
+                    const shiftCounter = { '기숙사1': 0, '기숙사2': 0 };
 
                     const processExisting = (assignedNameRaw, group, slotIdx, isWeekend, dateNum) => {
                         const assignedName = normName(assignedNameRaw);
@@ -436,12 +436,12 @@ methods: {
                         const isWeekend = (dayStr === '토' || dayStr === '일');
 
                         if (cUjeong !== -1) {
-                            shiftCounter['우정학사'] += 1;
-                            processExisting(row[cUjeong], '우정학사', shiftCounter['우정학사'], isWeekend, dateNum);
+                            shiftCounter['기숙사1'] += 1;
+                            processExisting(row[cUjeong], '기숙사1', shiftCounter['기숙사1'], isWeekend, dateNum);
                         }
                         if (cBonghwang !== -1) {
-                            shiftCounter['봉황관'] += 1;
-                            processExisting(row[cBonghwang], '봉황관', shiftCounter['봉황관'], isWeekend, dateNum);
+                            shiftCounter['기숙사2'] += 1;
+                            processExisting(row[cBonghwang], '기숙사2', shiftCounter['기숙사2'], isWeekend, dateNum);
                         }
                     }
 
@@ -452,7 +452,7 @@ methods: {
                     // ------------------------------------------------------------
                     this.previewSchedule = [];
 
-                    const shiftCounter2 = { '우정학사': 0, '봉황관': 0 };
+                    const shiftCounter2 = { '기숙사1': 0, '기숙사2': 0 };
 
                     const getCandidate = (targetGroup, dateNum, dayStr, isWeekend, slotIdx) => {
                         // 해당 날짜 기준 "활동 가능한 인원(시작일 통과)"을 기반으로 회전 목표 간격 설정
@@ -541,19 +541,19 @@ methods: {
                         // 슬롯 인덱스(회전 계산용) 업데이트
                         let slotIdxU = -1, slotIdxB = -1;
                         if (cUjeong !== -1) {
-                            shiftCounter2['우정학사'] += 1;
-                            slotIdxU = shiftCounter2['우정학사'];
+                            shiftCounter2['기숙사1'] += 1;
+                            slotIdxU = shiftCounter2['기숙사1'];
                         }
                         if (cBonghwang !== -1) {
-                            shiftCounter2['봉황관'] += 1;
-                            slotIdxB = shiftCounter2['봉황관'];
+                            shiftCounter2['기숙사2'] += 1;
+                            slotIdxB = shiftCounter2['기숙사2'];
                         }
 
                         let ujeongAssignee = row[cUjeong] || '';
                         let bonghwangAssignee = row[cBonghwang] || '';
 
                         if (!ujeongAssignee && cUjeong !== -1) {
-                            const chosen = getCandidate('우정학사', dateNum, dayStr, isWeekend, slotIdxU);
+                            const chosen = getCandidate('기숙사1', dateNum, dayStr, isWeekend, slotIdxU);
                             if (chosen) {
                                 ujeongAssignee = chosen;
                                 row[cUjeong] = chosen;
@@ -571,7 +571,7 @@ methods: {
                         }
 
                         if (!bonghwangAssignee && cBonghwang !== -1) {
-                            const chosen = getCandidate('봉황관', dateNum, dayStr, isWeekend, slotIdxB);
+                            const chosen = getCandidate('기숙사2', dateNum, dayStr, isWeekend, slotIdxB);
                             if (chosen) {
                                 bonghwangAssignee = chosen;
                                 row[cBonghwang] = chosen;
@@ -690,3 +690,4 @@ methods: {
     </script>
 </body>
 </html>
+
