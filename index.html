@@ -309,8 +309,8 @@ methods: {
                             this.colMap.date = rowStrs.indexOf('일자');
                             this.colMap.day = rowStrs.indexOf('요일');
                             this.colMap.shift = rowStrs.findIndex(s => s.includes('주야') || s.includes('주·야간'));
-                            this.colMap.ujeong = rowStrs.findIndex(s => s.includes('기숙사1') || s === '우정');
-                            this.colMap.bonghwang = rowStrs.findIndex(s => s.includes('기숙사2') || s.includes('봉황'));
+                            this.colMap.ujeong = rowStrs.findIndex(s => s.includes('기숙사1') || s === '기숙사1');
+                            this.colMap.bonghwang = rowStrs.findIndex(s => s.includes('기숙사2') || s.includes('기숙사2'));
                             this.colMap.name = rowStrs.indexOf('성명');
                             this.colMap.total = rowStrs.findIndex(s => s.includes('누계') || s.includes('시수'));
                             this.colMap.groupCol = rowStrs.findIndex(s => s === '근무' || s === '소속');
@@ -346,8 +346,8 @@ methods: {
                             // '기숙사1/기숙사2' 문자열이 포함되어도 오인식되는 문제가 있어
                             // "정확히 일치"하는 경우에만 소속(근무지)으로 인정합니다.
                             const gv = String(groupVal || '').replace(/\s+/g, '').trim();
-                            if (gv === '기숙사2' || gv === '봉황') lastGroup = '기숙사2';
-                            else if (gv === '기숙사1' || gv === '우정') lastGroup = '기숙사1';
+                            if (gv === '기숙사2' || gv === '기숙사2') lastGroup = '기숙사2';
+                            else if (gv === '기숙사1' || gv === '기숙사1') lastGroup = '기숙사1';
                         }
 
                         if (nameVal && nameVal.trim() !== "") {
@@ -690,4 +690,5 @@ methods: {
     </script>
 </body>
 </html>
+
 
