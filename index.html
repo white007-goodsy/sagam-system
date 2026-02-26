@@ -23,53 +23,14 @@
     <div id="app" v-cloak class="container mx-auto p-4 max-w-6xl">
         <header class="mb-8 text-center mt-6">
             <h1 class="text-3xl font-bold text-gray-800"><i class="fa-solid fa-calendar-check text-blue-600 mr-2"></i>생활지도사감 배정 시스템</h1>
-            <p v-if="view !== 'login'" class="text-gray-500 mt-2">
-                <span class="text-blue-500 font-bold"><i class="fa-solid fa-laptop-code mr-1"></i>관리자 로컬 모드</span>
-            </p>
+            <p class="text-gray-500 mt-2"><span class="text-blue-500 font-bold"><i class="fa-solid fa-laptop-code mr-1"></i>로컬 저장(브라우저) 기반</span> · 규칙은 자동 저장되며 다음 접속에도 유지됩니다.</p>
         </header>
 
-        <!-- ================= [1] 로그인/역할 선택 화면 ================= -->
-        <div v-if="view === 'login'" class="flex flex-col gap-6 justify-center items-center mt-12 max-w-2xl mx-auto">
-            
-            <!-- 관리자 모드 카드 -->
-            <div class="bg-white rounded-2xl shadow-lg p-8 w-full border-t-8 border-blue-600 transform transition hover:-translate-y-1">
-                <div class="text-center mb-6">
-                    <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-solid fa-user-tie text-3xl text-blue-600"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold text-gray-800">관리자 모드 접속</h2>
-                    <p class="text-gray-500 text-sm mt-2">엑셀을 업로드하고 사감 배정을 실행하는 관리자 전용 화면입니다.</p>
-                </div>
-                
-                <div v-if="!showAdminLogin" class="text-center">
-                    <button @click="showAdminLogin = true" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg w-full transition duration-200">
-                        시작하기
-                    </button>
-                </div>
-                <div v-else class="space-y-4">
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">관리자 비밀번호</label>
-                        <input type="password" v-model="adminPwd" @keyup.enter="loginAdmin" placeholder="기본값: 0000" class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="flex gap-2">
-                        <button @click="showAdminLogin = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg w-1/3 transition duration-200">
-                            취소
-                        </button>
-                        <button @click="loginAdmin" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg w-2/3 transition duration-200">
-                            확인
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= [3] 관리자 화면 ================= -->
-        <div v-if="view === 'admin'">
+        <!-- ================= [메인 화면] ================= -->
+        <div>
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-user-tie text-blue-600 mr-2"></i>관리자 대시보드</h2>
-                <button @click="view = 'login'" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition duration-200">
-                    <i class="fa-solid fa-right-from-bracket mr-1"></i>처음으로
-                </button>
+                <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-user-tie text-blue-600 mr-2"></i>사감 배정 대시보드</h2>
+                
             </div>
 
             <!-- 관리자 1단계: 엑셀 파일 업로드 -->
@@ -227,12 +188,7 @@
 
         createApp({
             data() {
-                return {
-                    view: 'login', // 'login', 'admin'
-                    showAdminLogin: false,
-                    adminPwd: '',
-                    
-                    // DB State
+                return {                    // DB State
                     rules: [], 
                     
                     // Admin State
@@ -290,17 +246,7 @@
                 }
             },
 methods: {
-                // =============== 화면 이동 & 로그인 ===============
-                loginAdmin() {
-                    if (this.adminPwd === '0000') {
-                        this.view = 'admin';
-                        this.adminPwd = '';
-                    } else {
-                        alert('비밀번호가 틀렸습니다. (기본값: 0000)');
-                    }
-                },
-                
-                // =============== 로컬 데이터 저장/삭제 ===============
+// =============== 로컬 데이터 저장/삭제 ===============
                 saveRulesLocally() {
                     localStorage.setItem('sagam_rules', JSON.stringify(this.rules));
                 },
@@ -438,17 +384,17 @@ methods: {
                     }
                     this.saveRulesLocally();
                 },
-
-                // =============== 관리자 모드: 알고리즘 실행 ===============
+                // =============== 메인: 알고리즘 실행 ===============
                 runAlgorithm() {
                     if(!this.dataAOA || this.rules.length === 0) return;
-                    
+
                     // 실행 전 변경사항 저장
                     this.saveRulesLocally();
 
+                    // 통계 초기화
                     this.stats = {};
                     this.rules.forEach(rule => {
-                        this.stats[rule.name] = { total: 0, weekend: 0, lastWorkedDateNum: -99 };
+                        this.stats[rule.name] = { total: 0, weekend: 0, lastWorkedDateNum: -99, lastShiftIdx: -9999 };
                     });
 
                     const getDateNum = (val) => {
@@ -457,67 +403,134 @@ methods: {
                         return match ? parseInt(match[0]) : -1;
                     };
 
+                    const normName = (v) => String(v || '').replace(/\s+/g, '').trim();
+
                     const { date: cDate, day: cDay, shift: cShift, ujeong: cUjeong, bonghwang: cBonghwang } = this.colMap;
+
+                    // ------------------------------------------------------------
+                    // 1) 기존(이미 채워진) 배치가 있으면 통계에 반영
+                    //    + "회전 간격"을 위해 shift index(슬롯 번호)도 같이 기록
+                    // ------------------------------------------------------------
+                    const shiftCounter = { '우정학사': 0, '봉황관': 0 };
+
+                    const processExisting = (assignedNameRaw, group, slotIdx, isWeekend, dateNum) => {
+                        const assignedName = normName(assignedNameRaw);
+                        if (!assignedName) return;
+                        if (assignedName === '⚠️부족' || assignedName === '부족') return;
+                        if (!this.stats[assignedName]) return;
+
+                        this.stats[assignedName].total += 1;
+                        if (isWeekend) this.stats[assignedName].weekend += 1;
+                        this.stats[assignedName].lastWorkedDateNum = dateNum;
+                        this.stats[assignedName].lastShiftIdx = slotIdx;
+                    };
 
                     for (let i = 0; i < this.dataAOA.length; i++) {
                         const row = this.dataAOA[i];
                         if (!row) continue;
+
                         const dateNum = getDateNum(row[cDate]);
                         if (dateNum === -1) continue;
 
-                        const isWeekend = (String(row[cDay] || '').trim() === '토' || String(row[cDay] || '').trim() === '일');
+                        const dayStr = String(row[cDay] || '').trim();
+                        const isWeekend = (dayStr === '토' || dayStr === '일');
 
-                        const processExisting = (assignedName) => {
-                            if (assignedName && this.stats[assignedName]) {
-                                this.stats[assignedName].total += 1;
-                                this.stats[assignedName].lastWorkedDateNum = dateNum;
-                                if (isWeekend) this.stats[assignedName].weekend += 1;
-                            }
-                        };
-                        if (cUjeong !== -1) processExisting(row[cUjeong]);
-                        if (cBonghwang !== -1) processExisting(row[cBonghwang]);
+                        if (cUjeong !== -1) {
+                            shiftCounter['우정학사'] += 1;
+                            processExisting(row[cUjeong], '우정학사', shiftCounter['우정학사'], isWeekend, dateNum);
+                        }
+                        if (cBonghwang !== -1) {
+                            shiftCounter['봉황관'] += 1;
+                            processExisting(row[cBonghwang], '봉황관', shiftCounter['봉황관'], isWeekend, dateNum);
+                        }
                     }
 
+                    // ------------------------------------------------------------
+                    // 2) 자동 배치 (가능하면 "8명 → 8번에 1번"처럼 회전)
+                    //    - 핵심: 마지막 배치 슬롯과의 거리(gap)가 targetGap(활동 인원-1)보다
+                    //      부족하면 큰 페널티를 주고, 가능한 사람부터 선택
+                    // ------------------------------------------------------------
                     this.previewSchedule = [];
 
-                    const getCandidate = (targetGroup, dateNum, dayStr, isWeekend) => {
+                    const shiftCounter2 = { '우정학사': 0, '봉황관': 0 };
+
+                    const getCandidate = (targetGroup, dateNum, dayStr, isWeekend, slotIdx) => {
+                        // 해당 날짜 기준 "활동 가능한 인원(시작일 통과)"을 기반으로 회전 목표 간격 설정
+                        const activeCount = this.rules.filter(r => r.group === targetGroup && dateNum >= (r.startDate || 1)).length;
+                        const targetGap = Math.max(0, activeCount - 1); // 예: 8명 -> 7칸 간격이 이상적
+
                         let candidates = this.rules.filter(rule => {
                             if (rule.group !== targetGroup) return false;
-                            
+
                             const stat = this.stats[rule.name];
-                            if (dateNum < rule.startDate) return false;
-                            
-                            const parsedExDates = rule.excludedDatesStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+                            if (!stat) return false;
+
+                            // 시작일
+                            if (dateNum < (rule.startDate || 1)) return false;
+
+                            // 제외 날짜
+                            const parsedExDates = String(rule.excludedDatesStr || '')
+                                .split(',')
+                                .map(s => parseInt(String(s).trim()))
+                                .filter(n => !isNaN(n));
                             if (parsedExDates.includes(dateNum)) return false;
-                            if (rule.excludedDays.includes(dayStr)) return false;
-                            
-                            if (!isWeekend && rule.fixedDays.length > 0) {
+
+                            // 제외 요일
+                            if (Array.isArray(rule.excludedDays) && rule.excludedDays.includes(dayStr)) return false;
+
+                            // 평일 고정 요일(주말은 예외 처리하지 않음)
+                            if (!isWeekend && Array.isArray(rule.fixedDays) && rule.fixedDays.length > 0) {
                                 if (!rule.fixedDays.includes(dayStr)) return false;
                             }
-                            
+
+                            // "연속" 방지(날짜 기준): 같은 날/다음날 배치 금지
                             if (dateNum === stat.lastWorkedDateNum || dateNum === stat.lastWorkedDateNum + 1) return false;
+
                             return true;
                         });
 
                         if (candidates.length === 0) return null;
 
+                        // 랜덤 섞기(동점 방지) 후, 점수(페널티) 기반 정렬
                         candidates.sort(() => Math.random() - 0.5);
+
                         candidates.sort((a, b) => {
+                            const sa = this.stats[a.name];
+                            const sb = this.stats[b.name];
+
+                            const ga = (sa.lastShiftIdx > -9000) ? (slotIdx - sa.lastShiftIdx - 1) : 9999;
+                            const gb = (sb.lastShiftIdx > -9000) ? (slotIdx - sb.lastShiftIdx - 1) : 9999;
+
+                            // 회전 간격 페널티(가장 중요)
+                            const penA = Math.max(0, targetGap - ga);
+                            const penB = Math.max(0, targetGap - gb);
+                            if (penA !== penB) return penA - penB;
+
+                            // 주말/평일 균형(그 다음 중요)
                             if (isWeekend) {
-                                if(this.stats[a.name].weekend !== this.stats[b.name].weekend) return this.stats[a.name].weekend - this.stats[b.name].weekend;
+                                if (sa.weekend !== sb.weekend) return sa.weekend - sb.weekend;
                             } else {
-                                const aWk = this.stats[a.name].total - this.stats[a.name].weekend;
-                                const bWk = this.stats[b.name].total - this.stats[b.name].weekend;
-                                if(aWk !== bWk) return aWk - bWk;
+                                const aWk = sa.total - sa.weekend;
+                                const bWk = sb.total - sb.weekend;
+                                if (aWk !== bWk) return aWk - bWk;
                             }
-                            return this.stats[a.name].total - this.stats[b.name].total;
+
+                            // 총 시수 균형
+                            if (sa.total !== sb.total) return sa.total - sb.total;
+
+                            // 마지막 배치가 더 오래 전인 사람(간격 큰 사람) 우선
+                            if (ga !== gb) return gb - ga;
+
+                            return 0;
                         });
+
                         return candidates[0].name;
                     };
 
                     for (let i = 0; i < this.dataAOA.length; i++) {
                         const row = this.dataAOA[i];
                         if (!row) continue;
+
                         const dateNum = getDateNum(row[cDate]);
                         if (dateNum === -1) continue;
 
@@ -525,18 +538,31 @@ methods: {
                         const shiftStr = String(row[cShift] || '').trim();
                         const isWeekend = (dayStr === '토' || dayStr === '일');
 
+                        // 슬롯 인덱스(회전 계산용) 업데이트
+                        let slotIdxU = -1, slotIdxB = -1;
+                        if (cUjeong !== -1) {
+                            shiftCounter2['우정학사'] += 1;
+                            slotIdxU = shiftCounter2['우정학사'];
+                        }
+                        if (cBonghwang !== -1) {
+                            shiftCounter2['봉황관'] += 1;
+                            slotIdxB = shiftCounter2['봉황관'];
+                        }
+
                         let ujeongAssignee = row[cUjeong] || '';
                         let bonghwangAssignee = row[cBonghwang] || '';
 
                         if (!ujeongAssignee && cUjeong !== -1) {
-                            const chosen = getCandidate('우정학사', dateNum, dayStr, isWeekend);
+                            const chosen = getCandidate('우정학사', dateNum, dayStr, isWeekend, slotIdxU);
                             if (chosen) {
                                 ujeongAssignee = chosen;
                                 row[cUjeong] = chosen;
                                 row._modified_ujeong = true;
+
                                 this.stats[chosen].total += 1;
-                                this.stats[chosen].lastWorkedDateNum = dateNum;
                                 if (isWeekend) this.stats[chosen].weekend += 1;
+                                this.stats[chosen].lastWorkedDateNum = dateNum;
+                                this.stats[chosen].lastShiftIdx = slotIdxU;
                             } else {
                                 ujeongAssignee = "⚠️ 부족";
                                 row[cUjeong] = "⚠️ 부족";
@@ -545,14 +571,16 @@ methods: {
                         }
 
                         if (!bonghwangAssignee && cBonghwang !== -1) {
-                            const chosen = getCandidate('봉황관', dateNum, dayStr, isWeekend);
+                            const chosen = getCandidate('봉황관', dateNum, dayStr, isWeekend, slotIdxB);
                             if (chosen) {
                                 bonghwangAssignee = chosen;
                                 row[cBonghwang] = chosen;
                                 row._modified_bonghwang = true;
+
                                 this.stats[chosen].total += 1;
-                                this.stats[chosen].lastWorkedDateNum = dateNum;
                                 if (isWeekend) this.stats[chosen].weekend += 1;
+                                this.stats[chosen].lastWorkedDateNum = dateNum;
+                                this.stats[chosen].lastShiftIdx = slotIdxB;
                             } else {
                                 bonghwangAssignee = "⚠️ 부족";
                                 row[cBonghwang] = "⚠️ 부족";
@@ -560,14 +588,16 @@ methods: {
                             }
                         }
 
-                        this.previewSchedule.push({ 
-                            date: row[cDate], day: dayStr, shift: shiftStr, 
-                            ujeongAssignee: ujeongAssignee, bonghwangAssignee: bonghwangAssignee 
+                        this.previewSchedule.push({
+                            date: row[cDate], day: dayStr, shift: shiftStr,
+                            ujeongAssignee: ujeongAssignee, bonghwangAssignee: bonghwangAssignee
                         });
                     }
+
                     this.scheduleReady = true;
                     setTimeout(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 100);
                 },
+
 
                 // =============== 엑셀 다운로드 (기존 로직 유지) ===============
                 async downloadExcel() {
