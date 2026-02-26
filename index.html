@@ -270,7 +270,26 @@
                     }
                 }
             },
-            methods: {
+            
+            watch: {
+                // ✅ 규칙(소속/시작일/체크박스/제외날짜 등)을 수정하면
+                // 저장 버튼을 누르지 않아도 자동으로 localStorage에 저장되어
+                // 다음번 접속에서도 그대로 유지됩니다.
+                rules: {
+                    handler() {
+                        try {
+                            if (this._saveTimer) clearTimeout(this._saveTimer);
+                            this._saveTimer = setTimeout(() => {
+                                try { this.saveRulesLocally(); } catch(e) { console.error(e); }
+                            }, 250);
+                        } catch(e) {
+                            console.error(e);
+                        }
+                    },
+                    deep: true
+                }
+            },
+methods: {
                 // =============== 화면 이동 & 로그인 ===============
                 loginAdmin() {
                     if (this.adminPwd === '0000') {
@@ -377,8 +396,12 @@
                         const groupVal = this.colMap.groupCol !== -1 ? row[this.colMap.groupCol] : '';
 
                         if (groupVal && groupVal.trim() !== "") {
-                            if (groupVal.includes('봉황')) lastGroup = '봉황관';
-                            else if (groupVal.includes('우정')) lastGroup = '우정학사';
+                            // ✅ '근무' 칸에 들어있는 긴 안내문(근무시간 안내 등) 때문에
+                            // '우정학사/봉황관' 문자열이 포함되어도 오인식되는 문제가 있어
+                            // "정확히 일치"하는 경우에만 소속(근무지)으로 인정합니다.
+                            const gv = String(groupVal || '').replace(/\s+/g, '').trim();
+                            if (gv === '봉황관' || gv === '봉황') lastGroup = '봉황관';
+                            else if (gv === '우정학사' || gv === '우정') lastGroup = '우정학사';
                         }
 
                         if (nameVal && nameVal.trim() !== "") {
@@ -387,13 +410,18 @@
                             if (invalidNames.includes(cleanName.replace(/\s+/g, ''))) continue;
                             if (/^[0-9-]+$/.test(cleanName)) continue;
 
+                            // ✅ '성명' 칸에 들어갈 수 있는 잡텍스트(안내문/요약문)를 배제하기 위해
+                            // 한글 이름(2~5글자) 형태만 사감 명단으로 인정합니다.
+                            const nameKey = cleanName.replace(/\s+/g, '');
+                            if (!/^[가-힣]{2,5}$/.test(nameKey)) continue;
+
                             // 엑셀 행 매핑 기록 (누계 작성 시 사용)
-                            this.excelStaffMap[cleanName] = { rowIdx: i };
+                            this.excelStaffMap[nameKey] = { rowIdx: i };
 
                             // 기존에 등록된 교사가 아니면 추가
-                            if (!this.rules.find(r => r.name === cleanName)) {
+                            if (!this.rules.find(r => r.name === nameKey)) {
                                 const newRule = {
-                                    name: cleanName,
+                                    name: nameKey,
                                     group: lastGroup,
                                     startDate: 1,
                                     excludedDays: [],
@@ -403,7 +431,7 @@
                                 this.rules.push(newRule);
                             } else {
                                 // 이미 있다면 엑셀 기반으로 소속(그룹) 최신화
-                                const existing = this.rules.find(r => r.name === cleanName);
+                                const existing = this.rules.find(r => r.name === nameKey);
                                 existing.group = lastGroup;
                             }
                         }
