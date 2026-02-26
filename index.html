@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>학교 생활지도사감 자동 배정 시스템 (클라우드 동기화)</title>
+    <title>학교 생활지도사감 자동 배정 시스템</title>
     <!-- Tailwind CSS (디자인) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 (글로벌 스크립트: 오류 방지) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- ExcelJS (엑셀 서식 완벽 유지 라이브러리) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <!-- FontAwesome (아이콘) -->
@@ -22,27 +24,26 @@
         <header class="mb-8 text-center mt-6">
             <h1 class="text-3xl font-bold text-gray-800"><i class="fa-solid fa-calendar-check text-blue-600 mr-2"></i>생활지도사감 배정 시스템</h1>
             <p v-if="view !== 'login'" class="text-gray-500 mt-2">
-                <span v-if="isCloud" class="text-green-600 font-bold"><i class="fa-solid fa-cloud mr-1"></i>클라우드 동기화 켜짐</span>
-                <span v-else class="text-orange-500 font-bold"><i class="fa-solid fa-hard-drive mr-1"></i>로컬 모드 (서버 미연결)</span>
+                <span class="text-blue-500 font-bold"><i class="fa-solid fa-laptop-code mr-1"></i>관리자 로컬 모드</span>
             </p>
         </header>
 
         <!-- ================= [1] 로그인/역할 선택 화면 ================= -->
-        <div v-if="view === 'login'" class="flex flex-col md:flex-row gap-6 justify-center items-stretch mt-12 max-w-4xl mx-auto">
+        <div v-if="view === 'login'" class="flex flex-col gap-6 justify-center items-center mt-12 max-w-2xl mx-auto">
             
             <!-- 관리자 모드 카드 -->
-            <div class="bg-white rounded-2xl shadow-lg p-8 w-full md:w-1/2 border-t-8 border-blue-600 transform transition hover:-translate-y-1">
+            <div class="bg-white rounded-2xl shadow-lg p-8 w-full border-t-8 border-blue-600 transform transition hover:-translate-y-1">
                 <div class="text-center mb-6">
                     <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fa-solid fa-user-tie text-3xl text-blue-600"></i>
                     </div>
-                    <h2 class="text-2xl font-bold text-gray-800">관리자 모드</h2>
-                    <p class="text-gray-500 text-sm mt-2">엑셀을 업로드하고 최종 사감 배정을 실행합니다.</p>
+                    <h2 class="text-2xl font-bold text-gray-800">관리자 모드 접속</h2>
+                    <p class="text-gray-500 text-sm mt-2">엑셀을 업로드하고 사감 배정을 실행하는 관리자 전용 화면입니다.</p>
                 </div>
                 
                 <div v-if="!showAdminLogin" class="text-center">
                     <button @click="showAdminLogin = true" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg w-full transition duration-200">
-                        관리자로 접속하기
+                        시작하기
                     </button>
                 </div>
                 <div v-else class="space-y-4">
@@ -60,97 +61,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 교사 모드 카드 -->
-            <div class="bg-white rounded-2xl shadow-lg p-8 w-full md:w-1/2 border-t-8 border-green-500 transform transition hover:-translate-y-1">
-                <div class="text-center mb-6">
-                    <div class="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-solid fa-chalkboard-user text-3xl text-green-600"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold text-gray-800">교사 모드</h2>
-                    <p class="text-gray-500 text-sm mt-2">본인의 희망 휴무일 및 배정 제약 조건을 입력합니다.</p>
-                </div>
-                
-                <div class="text-center mt-auto h-full flex flex-col justify-end">
-                    <button @click="view = 'teacher'" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg w-full transition duration-200 mt-8">
-                        제약 조건 입력하기
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= [2] 교사 화면 (제약 조건 입력) ================= -->
-        <div v-if="view === 'teacher'" class="bg-white rounded-xl shadow-md p-6 max-w-2xl mx-auto border-t-4 border-green-500">
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-pen-to-square text-green-600 mr-2"></i>개인별 제약 조건 입력</h2>
-                <button @click="view = 'login'" class="text-gray-500 hover:text-gray-800"><i class="fa-solid fa-right-from-bracket mr-1"></i>처음으로</button>
-            </div>
-
-            <div v-if="rules.length === 0" class="text-center py-10">
-                <i class="fa-solid fa-triangle-exclamation text-4xl text-orange-400 mb-4"></i>
-                <p class="text-gray-600 font-bold">아직 관리자가 명단을 동기화하지 않았습니다.</p>
-                <p class="text-sm text-gray-500 mt-2">관리자가 엑셀 파일을 업로드한 이후에 접속해주세요.</p>
-            </div>
-
-            <div v-else>
-                <div class="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">1. 본인의 이름을 선택하세요</label>
-                    <select v-model="selectedTeacherName" @change="loadTeacherRule" class="shadow border rounded w-full py-3 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-lg">
-                        <option value="">-- 이름을 선택하세요 --</option>
-                        <option v-for="rule in rules" :key="rule.name" :value="rule.name">{{ rule.name }} ({{ rule.group }})</option>
-                    </select>
-                </div>
-
-                <div v-if="teacherForm" class="space-y-6">
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">2. 소속 (우정학사 / 봉황관)</label>
-                        <select v-model="teacherForm.group" class="shadow border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="우정학사">우정학사</option>
-                            <option value="봉황관">봉황관</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">3. 사감 배치 시작일 <span class="text-xs font-normal text-gray-500">(예: 전입교사 16일)</span></label>
-                        <div class="flex items-center">
-                            <input type="number" v-model="teacherForm.startDate" min="1" max="31" class="shadow border rounded w-24 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                            <span class="ml-2 text-gray-600 font-bold">일부터 배치 시작</span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">4. 매주 근무 불가능한 요일 (제외 요일)</label>
-                        <div class="flex gap-4 bg-gray-50 p-3 rounded border">
-                            <label v-for="day in ['월','화','수','목','금']" :key="day" class="flex items-center cursor-pointer">
-                                <input type="checkbox" :value="day" v-model="teacherForm.excludedDays" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-1">
-                                <span class="text-gray-700 font-medium">{{day}}</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">5. 평일 중 반드시 근무해야 하는 요일 (고정 요일)</label>
-                        <div class="flex gap-4 bg-gray-50 p-3 rounded border">
-                            <label v-for="day in ['월','화','수','목','금']" :key="day" class="flex items-center cursor-pointer">
-                                <input type="checkbox" :value="day" v-model="teacherForm.fixedDays" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-1">
-                                <span class="text-gray-700 font-medium">{{day}}</span>
-                            </label>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">* 선택하지 않으면 모든 평일에 자유롭게 배치됩니다.</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">6. 특정 날짜 휴무 (쉼표로 구분)</label>
-                        <input type="text" v-model="teacherForm.excludedDatesStr" placeholder="예: 1, 13, 24" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-
-                    <div class="pt-4 border-t">
-                        <button @click="saveTeacherForm" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition duration-200 text-lg">
-                            <i class="fa-solid fa-floppy-disk mr-2"></i>내 조건 저장하기
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- ================= [3] 관리자 화면 ================= -->
@@ -158,14 +68,14 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-user-tie text-blue-600 mr-2"></i>관리자 대시보드</h2>
                 <button @click="view = 'login'" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition duration-200">
-                    <i class="fa-solid fa-right-from-bracket mr-1"></i>로그아웃
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i>처음으로
                 </button>
             </div>
 
             <!-- 관리자 1단계: 엑셀 파일 업로드 -->
             <div class="bg-white rounded-xl shadow-md p-6 mb-6 border-l-4 border-blue-500">
                 <h3 class="text-lg font-bold mb-4">1단계: 근무표 엑셀 업로드 (명단 추출)</h3>
-                <p class="text-sm text-gray-600 mb-4">업로드 즉시 교사들의 명단이 클라우드에 등록되어 교사들이 링크로 접속해 입력할 수 있게 됩니다.</p>
+                <p class="text-sm text-gray-600 mb-4">이번 달 빈 근무표 엑셀 파일을 업로드하면 교사 명단을 자동으로 추출합니다.</p>
                 
                 <div class="flex items-center justify-center w-full">
                     <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
@@ -181,40 +91,56 @@
                 </div>
             </div>
 
-            <!-- 관리자 2단계: 실시간 교사 입력 현황 모니터링 -->
+            <!-- 관리자 2단계: 교사 제약 조건 설정 -->
             <div v-if="rules.length > 0" class="bg-white rounded-xl shadow-md p-6 mb-6 border-l-4 border-indigo-500">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold">2단계: 교사 입력 현황 <span class="text-sm font-normal text-indigo-600 bg-indigo-50 px-2 py-1 rounded ml-2">{{ rules.length }}명 인식됨</span></h3>
-                    <button @click="syncData" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded border">
-                        <i class="fa-solid fa-rotate mr-1"></i>새로고침
-                    </button>
+                    <h3 class="text-lg font-bold">2단계: 교사 제약 조건 일괄 설정 <span class="text-sm font-normal text-indigo-600 bg-indigo-50 px-2 py-1 rounded ml-2">{{ rules.length }}명 인식됨</span></h3>
                 </div>
                 
-                <p class="text-xs text-gray-500 mb-3">※ 교사들이 각자의 폰/PC로 입력하면 이 화면에 실시간으로 반영됩니다. 잘못 인식된 텍스트가 있다면 ❌를 눌러 삭제하세요.</p>
+                <p class="text-xs text-gray-500 mb-3">※ 메신저로 취합된 교사별 희망 휴무일 등을 아래 표에 직접 체크해 주세요. 엑셀에 적힌 잘못된 텍스트가 명단에 들어왔다면 ❌를 눌러 지우세요.</p>
                 
-                <div class="overflow-x-auto max-h-80 overflow-y-auto border rounded">
+                <div class="overflow-x-auto max-h-[500px] overflow-y-auto border rounded">
                     <table class="w-full text-sm text-left text-gray-600">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0 z-10">
                             <tr>
-                                <th scope="col" class="px-3 py-2">소속</th>
+                                <th scope="col" class="px-3 py-2 text-center">소속 (근무지)</th>
                                 <th scope="col" class="px-3 py-2">성명</th>
-                                <th scope="col" class="px-3 py-2">시작일</th>
-                                <th scope="col" class="px-3 py-2">제외 요일</th>
-                                <th scope="col" class="px-3 py-2">고정 요일</th>
-                                <th scope="col" class="px-3 py-2">제외 날짜</th>
-                                <th scope="col" class="px-3 py-2 text-center">수동 삭제</th>
+                                <th scope="col" class="px-3 py-2" title="이 날짜 이후부터 근무 배정">배치 시작일</th>
+                                <th scope="col" class="px-3 py-2" title="특정 요일 제외">제외 요일</th>
+                                <th scope="col" class="px-3 py-2" title="이 요일에만 평일 근무">평일 고정 요일</th>
+                                <th scope="col" class="px-3 py-2" title="쉼표로 구분하여 특정 날짜 제외">제외 날짜 (예: 1, 13)</th>
+                                <th scope="col" class="px-3 py-2 text-center">삭제</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="staff in rules" :key="staff.name" class="border-b hover:bg-gray-50">
-                                <td class="px-3 py-2 font-bold" :class="staff.group === '우정학사' ? 'text-blue-600' : 'text-orange-600'">{{ staff.group }}</td>
-                                <td class="px-3 py-2 font-bold text-gray-900">{{ staff.name }}</td>
-                                <td class="px-3 py-2">{{ staff.startDate }}일</td>
-                                <td class="px-3 py-2 text-red-500">{{ staff.excludedDays.join(', ') || '-' }}</td>
-                                <td class="px-3 py-2 text-blue-500">{{ staff.fixedDays.join(', ') || '-' }}</td>
-                                <td class="px-3 py-2">{{ staff.excludedDatesStr || '-' }}</td>
+                            <tr v-for="(staff, index) in rules" :key="staff.name" class="border-b hover:bg-gray-50">
                                 <td class="px-3 py-2 text-center">
-                                    <button @click="deleteRule(staff.name)" class="text-red-400 hover:text-red-600">
+                                    <select v-model="staff.group" class="border rounded px-2 py-1 text-sm bg-white font-bold cursor-pointer" :class="staff.group === '우정학사' ? 'text-blue-600 border-blue-300' : 'text-orange-600 border-orange-300'">
+                                        <option value="우정학사">우정학사</option>
+                                        <option value="봉황관">봉황관</option>
+                                    </select>
+                                </td>
+                                <td class="px-3 py-2 font-bold text-gray-900">{{ staff.name }}</td>
+                                <td class="px-3 py-2">
+                                    <div class="flex items-center">
+                                        <input type="number" v-model="staff.startDate" min="1" max="31" class="w-16 border rounded px-2 py-1 text-center mr-1">
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2 checkbox-group">
+                                    <label v-for="day in ['월','화','수','목','금']" :key="day">
+                                        <input type="checkbox" :value="day" v-model="staff.excludedDays"> {{day}}
+                                    </label>
+                                </td>
+                                <td class="px-3 py-2 checkbox-group">
+                                    <label v-for="day in ['월','화','수','목','금']" :key="day">
+                                        <input type="checkbox" :value="day" v-model="staff.fixedDays"> {{day}}
+                                    </label>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <input type="text" v-model="staff.excludedDatesStr" placeholder="1, 15" class="w-full border rounded px-2 py-1">
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <button @click="deleteRule(index)" class="text-red-400 hover:text-white hover:bg-red-500 px-2 py-1 rounded transition-colors">
                                         <i class="fa-solid fa-xmark"></i>
                                     </button>
                                 </td>
@@ -227,7 +153,6 @@
                     <button @click="runAlgorithm" :disabled="!workbook" class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-200 text-lg">
                         <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>자동 사감 배치 실행
                     </button>
-                    <p v-if="!workbook" class="text-xs text-red-500 mt-2">* 엑셀 파일이 메모리에 없습니다. 1단계에서 엑셀을 다시 업로드해주세요.</p>
                 </div>
             </div>
 
@@ -240,7 +165,7 @@
                     </button>
                 </div>
 
-                <!-- 통계 및 미리보기 영역 (기존 코드와 동일 로직) -->
+                <!-- 통계 및 미리보기 영역 -->
                 <div class="flex flex-col md:flex-row gap-6">
                     <div class="w-full md:w-1/3">
                         <h4 class="font-bold text-gray-700 mb-2">교사별 근무 통계 (누계)</h4>
@@ -297,40 +222,18 @@
 
     </div>
 
-    <script type="module">
-        import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
-        
-        // Firebase v11.6.1 SDK imports
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-
-        // Firebase Setup Logic
-        let db, auth, appId, isCloud = false;
-        try {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'sagam-app-id';
-                isCloud = true;
-            }
-        } catch(e) { 
-            console.warn('Firebase config not found. Running in Local Storage mode.', e); 
-        }
+    <script>
+        const { createApp } = Vue;
 
         createApp({
             data() {
                 return {
-                    isCloud: isCloud,
-                    currentUser: null,
-                    view: 'login', // 'login', 'admin', 'teacher'
+                    view: 'login', // 'login', 'admin'
                     showAdminLogin: false,
                     adminPwd: '',
                     
                     // DB State
-                    rules: [], // 교사들의 제약조건 DB
+                    rules: [], 
                     
                     // Admin State
                     loading: false,
@@ -340,14 +243,10 @@
                     dataAOA: [],
                     colMap: {},
                     headerRowIdx: -1,
-                    excelStaffMap: {}, // 엑셀에서 뽑아낸 각 교사별 행 위치 정보 저장소
+                    excelStaffMap: {}, 
                     stats: {},
                     scheduleReady: false,
-                    previewSchedule: [],
-                    
-                    // Teacher State
-                    selectedTeacherName: '',
-                    teacherForm: null,
+                    previewSchedule: []
                 }
             },
             computed: {
@@ -360,27 +259,15 @@
                     })).sort((a, b) => b.total - a.total);
                 }
             },
-            async mounted() {
-                // Initialize Auth & Data Sync
-                if (this.isCloud) {
+            mounted() {
+                // 브라우저 저장소에서 기존 제약조건 불러오기
+                const localRules = localStorage.getItem('sagam_rules');
+                if (localRules) {
                     try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                        
-                        onAuthStateChanged(auth, (user) => {
-                            this.currentUser = user;
-                            if (user) this.listenToRules();
-                        });
+                        this.rules = JSON.parse(localRules);
                     } catch(e) {
-                        console.error("Auth Error", e);
+                        console.error("규칙 불러오기 실패", e);
                     }
-                } else {
-                    // Local Storage Fallback
-                    const localRules = localStorage.getItem('sagam_rules');
-                    if (localRules) this.rules = JSON.parse(localRules);
                 }
             },
             methods: {
@@ -394,61 +281,14 @@
                     }
                 },
                 
-                // =============== 데이터 동기화 (Firestore / LocalStorage) ===============
-                listenToRules() {
-                    if (!this.currentUser || !this.isCloud) return;
-                    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'sagamRules'));
-                    onSnapshot(q, (snapshot) => {
-                        const loaded = [];
-                        snapshot.forEach((doc) => {
-                            loaded.push({ name: doc.id, ...doc.data() });
-                        });
-                        this.rules = loaded;
-                    }, (error) => {
-                        console.error("Snapshot error:", error);
-                    });
+                // =============== 로컬 데이터 저장/삭제 ===============
+                saveRulesLocally() {
+                    localStorage.setItem('sagam_rules', JSON.stringify(this.rules));
                 },
-                syncData() {
-                    // 수동 새로고침 (로컬 환경 대응)
-                    if (!this.isCloud) {
-                        const localRules = localStorage.getItem('sagam_rules');
-                        if (localRules) this.rules = JSON.parse(localRules);
-                    }
-                },
-                async saveRule(rule) {
-                    if (this.isCloud && this.currentUser) {
-                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'sagamRules', rule.name);
-                        await setDoc(docRef, rule);
-                    } else {
-                        const idx = this.rules.findIndex(r => r.name === rule.name);
-                        if (idx > -1) this.rules[idx] = rule;
-                        else this.rules.push(rule);
-                        localStorage.setItem('sagam_rules', JSON.stringify(this.rules));
-                    }
-                },
-                async deleteRule(name) {
-                    if(!confirm(`정말 ${name} 교사를 명단에서 삭제하시겠습니까?`)) return;
-                    
-                    if (this.isCloud && this.currentUser) {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sagamRules', name));
-                    } else {
-                        this.rules = this.rules.filter(r => r.name !== name);
-                        localStorage.setItem('sagam_rules', JSON.stringify(this.rules));
-                    }
-                },
-
-                // =============== 교사 모드 로직 ===============
-                loadTeacherRule() {
-                    if (!this.selectedTeacherName) {
-                        this.teacherForm = null;
-                        return;
-                    }
-                    const existing = this.rules.find(r => r.name === this.selectedTeacherName);
-                    this.teacherForm = JSON.parse(JSON.stringify(existing)); // 깊은 복사
-                },
-                async saveTeacherForm() {
-                    await this.saveRule(this.teacherForm);
-                    alert(`${this.teacherForm.name} 선생님의 설정이 저장되었습니다!`);
+                deleteRule(index) {
+                    if(!confirm(`정말 이 명단을 삭제하시겠습니까?`)) return;
+                    this.rules.splice(index, 1);
+                    this.saveRulesLocally();
                 },
 
                 // =============== 관리자 모드: 엑셀 파싱 ===============
@@ -483,7 +323,7 @@
 
                         this.analyzeStructure();
                     } catch (error) {
-                        alert("파일을 읽는 중 오류가 발생했습니다.");
+                        alert("파일을 읽는 중 오류가 발생했습니다. 정상적인 엑셀(.xlsx) 파일인지 확인해주세요.");
                         console.error(error);
                     } finally {
                         this.loading = false;
@@ -504,8 +344,8 @@
                             this.colMap.date = rowStrs.indexOf('일자');
                             this.colMap.day = rowStrs.indexOf('요일');
                             this.colMap.shift = rowStrs.findIndex(s => s.includes('주야') || s.includes('주·야간'));
-                            this.colMap.ujeong = rowStrs.findIndex(s => s.includes('우정학사'));
-                            this.colMap.bonghwang = rowStrs.findIndex(s => s.includes('봉황관') || s === '봉황');
+                            this.colMap.ujeong = rowStrs.findIndex(s => s.includes('우정학사') || s === '우정');
+                            this.colMap.bonghwang = rowStrs.findIndex(s => s.includes('봉황관') || s.includes('봉황'));
                             this.colMap.name = rowStrs.indexOf('성명');
                             this.colMap.total = rowStrs.findIndex(s => s.includes('누계') || s.includes('시수'));
                             this.colMap.groupCol = rowStrs.findIndex(s => s === '근무' || s === '소속');
@@ -515,12 +355,15 @@
 
                     this.headerRowIdx = headerRowIdx;
                     if (headerRowIdx === -1) {
-                        alert("엑셀 양식을 인식할 수 없습니다.");
+                        alert("엑셀 양식을 인식할 수 없습니다. 일자, 요일, 성명 등의 헤더가 있는지 확인해주세요.");
                         return;
                     }
 
                     if (this.colMap.bonghwang === -1 && this.colMap.ujeong !== -1) {
-                        this.colMap.bonghwang = this.colMap.ujeong + 1; 
+                        const nextColStr = String(this.dataAOA[headerRowIdx][this.colMap.ujeong + 1] || '').replace(/\s+/g, '');
+                        if (!nextColStr.includes('근무') && !nextColStr.includes('성명') && !nextColStr.includes('소속') && !nextColStr.includes('비고') && !nextColStr.includes('전화')) {
+                            this.colMap.bonghwang = this.colMap.ujeong + 1; 
+                        }
                     }
 
                     let lastGroup = '우정학사';
@@ -547,7 +390,7 @@
                             // 엑셀 행 매핑 기록 (누계 작성 시 사용)
                             this.excelStaffMap[cleanName] = { rowIdx: i };
 
-                            // DB에 없는 교사면 자동 생성하여 업로드
+                            // 기존에 등록된 교사가 아니면 추가
                             if (!this.rules.find(r => r.name === cleanName)) {
                                 const newRule = {
                                     name: cleanName,
@@ -557,16 +400,23 @@
                                     fixedDays: [],
                                     excludedDatesStr: ""
                                 };
-                                this.saveRule(newRule);
+                                this.rules.push(newRule);
+                            } else {
+                                // 이미 있다면 엑셀 기반으로 소속(그룹) 최신화
+                                const existing = this.rules.find(r => r.name === cleanName);
+                                existing.group = lastGroup;
                             }
                         }
                     }
-                    alert("엑셀 구조 파싱 및 클라우드 명단 동기화 완료!\n이제 교사들이 링크로 접속해 조건을 입력할 수 있습니다.");
+                    this.saveRulesLocally();
                 },
 
                 // =============== 관리자 모드: 알고리즘 실행 ===============
                 runAlgorithm() {
                     if(!this.dataAOA || this.rules.length === 0) return;
+                    
+                    // 실행 전 변경사항 저장
+                    this.saveRulesLocally();
 
                     this.stats = {};
                     this.rules.forEach(rule => {
@@ -659,6 +509,10 @@
                                 this.stats[chosen].total += 1;
                                 this.stats[chosen].lastWorkedDateNum = dateNum;
                                 if (isWeekend) this.stats[chosen].weekend += 1;
+                            } else {
+                                ujeongAssignee = "⚠️ 부족";
+                                row[cUjeong] = "⚠️ 부족";
+                                row._modified_ujeong = true;
                             }
                         }
 
@@ -671,6 +525,10 @@
                                 this.stats[chosen].total += 1;
                                 this.stats[chosen].lastWorkedDateNum = dateNum;
                                 if (isWeekend) this.stats[chosen].weekend += 1;
+                            } else {
+                                bonghwangAssignee = "⚠️ 부족";
+                                row[cBonghwang] = "⚠️ 부족";
+                                row._modified_bonghwang = true;
                             }
                         }
 
@@ -740,11 +598,14 @@
                             return letter;
                         };
 
-                        const ujeongLetter = getColLetter(cUjeong);
-                        const bonghwangLetter = cBonghwang !== -1 ? getColLetter(cBonghwang) : ujeongLetter;
+                        const minCol = Math.min(cUjeong, cBonghwang !== -1 ? cBonghwang : cUjeong);
+                        const maxCol = Math.max(cUjeong, cBonghwang !== -1 ? cBonghwang : cUjeong);
+
+                        const startLetter = getColLetter(minCol);
+                        const endLetter = getColLetter(maxCol);
 
                         this.worksheet.addConditionalFormatting({
-                            ref: `${ujeongLetter}${startRow}:${bonghwangLetter}${endRow}`,
+                            ref: `${startLetter}${startRow}:${endLetter}${endRow}`,
                             rules: [{
                                 type: 'cellIs', operator: 'equal', formulae: ['$Q$5'],
                                 style: {
@@ -770,5 +631,4 @@
         }).mount('#app')
     </script>
 </body>
-
 </html>
